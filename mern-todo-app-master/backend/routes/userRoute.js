@@ -6,5 +6,8 @@ const router = express.Router();
 router.post("/login",loginUser);
 router.post("/register",registerUser);
 router.get("/getuser", requireAuth, getUser)
-
+// Test endpoint
+router.get("/", (req, res) => {
+    res.json({ message: "User route is working!" });
+});
 export default router;

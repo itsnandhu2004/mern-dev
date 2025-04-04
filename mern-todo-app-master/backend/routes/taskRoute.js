@@ -6,5 +6,7 @@ const router = express.Router();
 router.post("/addTask", requireAuth, addTask)
 router.get("/getTask",requireAuth, getTask)
 router.get("/removeTask",requireAuth, removeTask)
-
+router.get("/", (req, res) => {
+    res.json({ message: "User route is working!" });
+});
 export default router;
