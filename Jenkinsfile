@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                cleanWs()
+                cleanWs()  // Ensures a fresh workspace
                 git branch: 'main', url: 'https://github.com/itsnandhu2004/mern-dev.git'
                 echo "✅ Code successfully checked out!"
             }
@@ -43,34 +43,29 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                dir('k8s-manifests') {
-                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                        sh """
-                            kubectl apply -f backend-deployment.yaml
-                            kubectl apply -f frontend-deployment.yaml
-                        """
-                    }
-                }
-                echo "🚀 Deployment to Kubernetes completed successfully!"
+      stage('Deploy to Kubernetes') {
+    steps {
+        dir('k8s-manifests') {
+            withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                sh """
+                    kubectl apply -f backend-deployment.yaml
+                    kubectl apply -f frontend-deployment.yaml
+                """
             }
         }
+        echo "🚀 Deployment to Kubernetes completed successfully!"
+    }
+}
 
         
     }
 
     post {
         success {
-            script {
-                def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
-                def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-                echo "🎉 Deployment successful!"
-                echo "🌍 Access your app at: http://${minikubeIp}:${nodePort}"
-            }
+            echo "🎉 Deployment completed successfully! Visit your application to test it."
         }
         failure {
-            echo "❌ Build or deployment failed. Please check logs."
+            echo "❌ Build failed! Please check the console logs."
         }
     }
 }
