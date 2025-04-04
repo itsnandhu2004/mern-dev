@@ -43,16 +43,19 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                dir('k8s-manifests') {
-                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                        sh "kubectl apply -f ."
-                    }
-                }
-                echo "🚀 Deployment to Kubernetes completed successfully!"
+      stage('Deploy to Kubernetes') {
+    steps {
+        dir('k8s-manifests') {
+            withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                sh """
+                    kubectl apply -f backend-deployment.yaml
+                    kubectl apply -f frontend-deployment.yaml
+                """
             }
         }
+        echo "🚀 Deployment to Kubernetes completed successfully!"
+    }
+}
 
         stage('Get Frontend URL') {
             steps {
