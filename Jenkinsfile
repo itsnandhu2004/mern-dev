@@ -57,12 +57,28 @@ pipeline {
             }
         }
 
-        stage('Expose Frontend (Port Forward on 9001)') {
+        stage('Wait for Frontend to be Available') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        sh "nohup kubectl port-forward svc/frontend-service 9001:80 > portforward.log 2>&1 &"
-                        echo "🌐 Frontend is now accessible at: http://localhost:9001"
+                        sh '''
+                            echo "🌐 Getting Minikube IP..."
+                            MINIKUBE_IP=$(minikube ip)
+                            echo "✅ Minikube IP: $MINIKUBE_IP"
+
+                            echo "🔍 Getting NodePort of frontend-service..."
+                            NODE_PORT=$(kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}')
+                            echo "✅ NodePort: $NODE_PORT"
+
+                            echo "⏳ Waiting for frontend service to become available..."
+                            for i in {1..15}; do
+                              curl -s --connect-timeout 2 http://$MINIKUBE_IP:$NODE_PORT > /dev/null && break
+                              echo "Service not ready yet. Retrying..."
+                              sleep 5
+                            done
+
+                            echo "✅ Frontend is now available at: http://$MINIKUBE_IP:$NODE_PORT"
+                        '''
                     }
                 }
             }
@@ -71,7 +87,11 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment completed successfully! Visit http://localhost:9001 to access the app."
+            script {
+                def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
+                def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
+                echo "🎉 Deployment completed successfully! Visit http://${minikubeIp}:${nodePort} to access the app."
+            }
         }
         failure {
             echo "❌ Build failed! Please check the console logs."
