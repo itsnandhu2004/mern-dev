@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                cleanWs()  // Ensures a fresh workspace
+                cleanWs()
                 git branch: 'main', url: 'https://github.com/itsnandhu2004/mern-dev.git'
                 echo "✅ Code successfully checked out!"
             }
@@ -57,12 +57,13 @@ pipeline {
             }
         }
 
-        stage('Get Frontend URL') {
+        stage('Expose Frontend (Port Forward)') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        def serviceUrl = sh(script: 'minikube service frontend-service --url', returnStdout: true).trim()
-                        echo "🌍 Frontend is accessible at: ${serviceUrl}"
+                        // Background port-forwarding to keep the pipeline running
+                        sh "nohup kubectl port-forward svc/frontend-service 8080:80 > portforward.log 2>&1 &"
+                        echo "🌐 Frontend is now accessible at: http://localhost:8080"
                     }
                 }
             }
@@ -71,7 +72,7 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment completed successfully! Visit your application to test it."
+            echo "🎉 Deployment completed successfully! Visit http://localhost:8080 to access the app."
         }
         failure {
             echo "❌ Build failed! Please check the console logs."
