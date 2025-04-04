@@ -20,7 +20,10 @@ spec:
             - containerPort: 5000
           env:
             - name: MONGO_URI
-              value: "mongodb+srv://Nandhu:nandy2004@to-do-app.bbdfcoi.mongodb.net/?retryWrites=true&w=>---
+              value: "mongodb+srv://Nandhu:nandy2004@to-do-app.bbdfcoi.mongodb.net/?retryWrites=true&w=majority"
+
+---
+
 apiVersion: v1
 kind: Service
 metadata:

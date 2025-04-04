@@ -17,7 +17,7 @@ pipeline {
 
         stage('Build Backend Docker Image') {
             steps {
-                dir('mern-todo-app-master/backend') { // Navigate to correct path
+                dir('mern-todo-app-master/backend') {
                     sh "docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
                 }
                 echo "✅ Backend Docker image built successfully!"
@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build Frontend Docker Image') {
             steps {
-                dir('mern-todo-app-master/frontend') { // Navigate to correct path
+                dir('mern-todo-app-master/frontend') {
                     sh "docker build -t ${FRONTEND_IMAGE} -f Dockerfile ."
                 }
                 echo "✅ Frontend Docker image built successfully!"
@@ -46,7 +46,9 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 dir('k8s-manifests') {
-                    sh "kubectl apply -f ."
+                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                        sh "kubectl apply -f ."
+                    }
                 }
                 echo "🚀 Deployment to Kubernetes completed successfully!"
             }
@@ -54,7 +56,9 @@ pipeline {
 
         stage('Get Frontend URL') {
             steps {
-                sh "kubectl get svc frontend-service"
+                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                    sh "kubectl get svc frontend-service"
+                }
                 echo "🌍 Application successfully deployed! Access frontend via LoadBalancer or NodePort."
             }
         }
