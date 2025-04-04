@@ -24,7 +24,7 @@ kind: Service
 metadata:
   name: frontend-service
 spec:
-  type: ClusterIP  # <-- changed from LoadBalancer to ClusterIP
+  type: LoadBalancer  # 🔁 CHANGED from ClusterIP to LoadBalancer
   selector:
     app: frontend
   ports:

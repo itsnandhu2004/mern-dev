@@ -49,7 +49,9 @@ pipeline {
                     withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                         sh """
                             kubectl apply -f backend-deployment.yaml
+                            kubectl apply -f backend-service.yaml
                             kubectl apply -f frontend-deployment.yaml
+                            kubectl apply -f frontend-service.yaml
                         """
                     }
                 }
@@ -57,28 +59,15 @@ pipeline {
             }
         }
 
-        stage('Wait for Frontend to be Available') {
+        stage('Get Frontend External IP') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        sh '''
-                            echo "🌐 Getting Minikube IP..."
-                            MINIKUBE_IP=$(minikube ip)
-                            echo "✅ Minikube IP: $MINIKUBE_IP"
-
-                            echo "🔍 Getting NodePort of frontend-service..."
-                            NODE_PORT=$(kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}')
-                            echo "✅ NodePort: $NODE_PORT"
-
-                            echo "⏳ Waiting for frontend service to become available..."
-                            for i in {1..15}; do
-                              curl -s --connect-timeout 2 http://$MINIKUBE_IP:$NODE_PORT > /dev/null && break
-                              echo "Service not ready yet. Retrying..."
-                              sleep 5
-                            done
-
-                            echo "✅ Frontend is now available at: http://$MINIKUBE_IP:$NODE_PORT"
-                        '''
+                        def externalIP = sh(
+                            script: "kubectl get svc frontend-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
+                            returnStdout: true
+                        ).trim()
+                        echo "🌐 App will be available soon at: http://${externalIP}"
                     }
                 }
             }
@@ -87,11 +76,7 @@ pipeline {
 
     post {
         success {
-            script {
-                def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
-                def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-                echo "🎉 Deployment completed successfully! Visit http://${minikubeIp}:${nodePort} to access the app."
-            }
+            echo "🎉 Deployment completed successfully!"
         }
         failure {
             echo "❌ Build failed! Please check the console logs."
