@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // Jenkins Credentials ID for DockerHub
+    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // DockerHub credentials
     DOCKERHUB_USERNAME = 'nandhini1694'
     BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/mern-backend:latest"
     FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/mern-frontend:latest"
@@ -19,7 +19,7 @@ pipeline {
       steps {
         dir('backend') {
           script {
-            sh "docker build -t ${BACKEND_IMAGE} ."
+            sh "docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
           }
         }
       }
@@ -29,7 +29,7 @@ pipeline {
       steps {
         dir('frontend') {
           script {
-            sh "docker build -t ${FRONTEND_IMAGE} ."
+            sh "docker build -t ${FRONTEND_IMAGE} -f Dockerfile ."
           }
         }
       }
@@ -54,8 +54,8 @@ pipeline {
     stage('Get Frontend URL') {
       steps {
         script {
-          def url = sh(script: "kubectl get svc frontend-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
-          echo "✅ Your MERN app frontend is accessible at: http://${url}"
+          def frontend_url = sh(script: "minikube service frontend-service --url", returnStdout: true).trim()
+          echo "✅ Your MERN app frontend is accessible at: ${frontend_url}"
         }
       }
     }
