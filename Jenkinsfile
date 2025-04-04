@@ -57,28 +57,38 @@ pipeline {
             }
         }
 
-        stage('Wait for Frontend to be Available') {
+        stage('Wait for Frontend Service') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        sh '''
-                            echo "🌐 Getting Minikube IP..."
-                            MINIKUBE_IP=$(minikube ip)
-                            echo "✅ Minikube IP: $MINIKUBE_IP"
+                        def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
+                        def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
 
-                            echo "🔍 Getting NodePort of frontend-service..."
-                            NODE_PORT=$(kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}')
-                            echo "✅ NodePort: $NODE_PORT"
+                        echo "🌐 Minikube IP: ${minikubeIp}"
+                        echo "🔍 NodePort: ${nodePort}"
 
-                            echo "⏳ Waiting for frontend service to become available..."
-                            for i in {1..15}; do
-                              curl -s --connect-timeout 2 http://$MINIKUBE_IP:$NODE_PORT > /dev/null && break
-                              echo "Service not ready yet. Retrying..."
-                              sleep 5
-                            done
+                        echo "⏳ Waiting for frontend to be available..."
 
-                            echo "✅ Frontend is now available at: http://$MINIKUBE_IP:$NODE_PORT"
-                        '''
+                        // Retry curl until service is ready
+                        def retries = 15
+                        def delay = 5
+                        def success = false
+
+                        for (int i = 0; i < retries; i++) {
+                            def status = sh(script: "curl -s --connect-timeout 2 http://${minikubeIp}:${nodePort} > /dev/null && echo OK || echo FAIL", returnStdout: true).trim()
+                            if (status == "OK") {
+                                success = true
+                                break
+                            }
+                            echo "🔁 Service not ready yet. Retrying in ${delay}s..."
+                            sleep time: delay, unit: 'SECONDS'
+                        }
+
+                        if (!success) {
+                            error("❌ Frontend service did not become available in time.")
+                        }
+
+                        echo "✅ Frontend is available at: http://${minikubeIp}:${nodePort}"
                     }
                 }
             }
@@ -90,11 +100,12 @@ pipeline {
             script {
                 def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
                 def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-                echo "🎉 Deployment completed successfully! Visit http://${minikubeIp}:${nodePort} to access the app."
+                echo "🎉 Deployment successful!"
+                echo "🌍 Access your app at: http://${minikubeIp}:${nodePort}"
             }
         }
         failure {
-            echo "❌ Build failed! Please check the console logs."
+            echo "❌ Build or deployment failed. Please check logs."
         }
     }
 }
