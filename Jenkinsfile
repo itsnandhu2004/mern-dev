@@ -46,7 +46,7 @@ pipeline {
       stage('Deploy to Kubernetes') {
     steps {
         dir('k8s-manifests') {
-            withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+            withEnv(["KUBECONFIG=/home/nandhini/.kube/config"]) {
                 sh """
                     kubectl apply -f backend-deployment.yaml --validate=false
                     kubectl apply -f frontend-deployment.yaml
