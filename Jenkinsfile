@@ -55,7 +55,7 @@ pipeline {
             steps {
                 script {
                     // Start Minikube (if not already started)
-                    sh "minikube start"
+                  
 
                     // Expose the frontend service via port-forwarding in the background
                     sh """
