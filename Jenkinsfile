@@ -35,7 +35,7 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                withDockerRegistry(credentialsId: 'DOCKERHUB_CREDENTIALS', url: '') {
+                withDockerRegistry(credentialsId: 'dockerhub-creds', url: '') {
                     sh "docker push ${BACKEND_IMAGE}"
                     sh "docker push ${FRONTEND_IMAGE}"
                 }
