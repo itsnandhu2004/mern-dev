@@ -4,6 +4,7 @@ pipeline {
     environment {
         BACKEND_IMAGE = "nandhini1694/mern-backend:latest"
         FRONTEND_IMAGE = "nandhini1694/mern-frontend:latest"
+        KUBECONFIG = "/var/lib/jenkins/.kube/config" // Path to kubeconfig on Jenkins server
     }
 
     stages {
@@ -46,66 +47,42 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 dir('k8s-manifests') {
-                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                        sh """
-                            kubectl apply -f backend-deployment.yaml
-                            kubectl apply -f frontend-deployment.yaml
-                        """
+                    withEnv(["KUBECONFIG=${KUBECONFIG}"]) {
+                        script {
+                            sh """
+                                echo '🚀 Applying deployment YAMLs...'
+                                kubectl apply -f backend-deployment.yaml
+                                kubectl apply -f frontend-deployment.yaml
+
+                                echo '📦 Getting Pods...'
+                                kubectl get pods
+
+                                echo '🌐 Getting Services...'
+                                kubectl get svc
+
+                                echo '📄 Describing Backend Deployment...'
+                                kubectl describe deployment backend-deployment || true
+
+                                echo '📄 Describing Frontend Deployment...'
+                                kubectl describe deployment frontend-deployment || true
+                            """
+                        }
                     }
                 }
-                echo "🚀 Deployment to Kubernetes completed successfully!"
-            }
-        }
-
-        stage('Wait for Frontend Service') {
-            steps {
-                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                    script {
-                        def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
-                        def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-
-                        echo "🌐 Minikube IP: ${minikubeIp}"
-                        echo "🔍 NodePort: ${nodePort}"
-
-                        echo "⏳ Waiting for frontend to be available..."
-
-                        // Retry curl until service is ready
-                        def retries = 15
-                        def delay = 5
-                        def success = false
-
-                        for (int i = 0; i < retries; i++) {
-                            def status = sh(script: "curl -s --connect-timeout 2 http://${minikubeIp}:${nodePort} > /dev/null && echo OK || echo FAIL", returnStdout: true).trim()
-                            if (status == "OK") {
-                                success = true
-                                break
-                            }
-                            echo "🔁 Service not ready yet. Retrying in ${delay}s..."
-                            sleep time: delay, unit: 'SECONDS'
-                        }
-
-                        if (!success) {
-                            error("❌ Frontend service did not become available in time.")
-                        }
-
-                        echo "✅ Frontend is available at: http://${minikubeIp}:${nodePort}"
-                    }
-                }
+                echo "✅ Kubernetes deployment completed and output printed!"
             }
         }
     }
 
     post {
+        always {
+            echo "🔁 Pipeline execution completed."
+        }
         success {
-            script {
-                def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
-                def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-                echo "🎉 Deployment successful!"
-                echo "🌍 Access your app at: http://${minikubeIp}:${nodePort}"
-            }
+            echo "🎉 Success! Your MERN app has been deployed."
         }
         failure {
-            echo "❌ Build or deployment failed. Please check logs."
+            echo "❌ Pipeline failed. Please check the logs."
         }
     }
 }
