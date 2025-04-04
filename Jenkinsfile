@@ -57,13 +57,13 @@ pipeline {
             }
         }
 
-        stage('Expose Frontend (Port Forward on 9090)') {
+        stage('Expose Frontend (Port Forward on 9001)') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        // Forward to port 9090 instead of 8080
-                        sh "nohup kubectl port-forward svc/frontend-service 9090:80 > portforward.log 2>&1 &"
-                        echo "🌐 Frontend is now accessible at: http://localhost:9090"
+                        // Forward to port 9001 instead of 8080
+                        sh "nohup kubectl port-forward svc/frontend-service 9001:80 > portforward.log 2>&1 &"
+                        echo "🌐 Frontend is now accessible at: http://localhost:9001"
                     }
                 }
             }
