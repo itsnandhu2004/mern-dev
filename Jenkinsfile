@@ -1,72 +1,71 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // DockerHub credentials
-    DOCKERHUB_USERNAME = 'nandhini1694'
-    BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/mern-backend:latest"
-    FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/mern-frontend:latest"
-  }
-
-  stages {
-    stage('Checkout Code') {
-      steps {
-        git branch: 'main', url: 'https://github.com/itsnandhu2004/mern-dev.git'
-      }
+    environment {
+        BACKEND_IMAGE = "nandhini1694/mern-backend:latest"
+        FRONTEND_IMAGE = "nandhini1694/mern-frontend:latest"
     }
 
-    stage('Build Backend Docker Image') {
-      steps {
-        dir('backend') {
-          script {
-            sh "docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
-          }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                cleanWs()  // Ensures a fresh workspace
+                git branch: 'main', url: 'https://github.com/itsnandhu2004/mern-dev.git'
+                echo "✅ Code successfully checked out!"
+            }
         }
-      }
-    }
 
-    stage('Build Frontend Docker Image') {
-      steps {
-        dir('frontend') {
-          script {
-            sh "docker build -t ${FRONTEND_IMAGE} -f Dockerfile ."
-          }
+        stage('Build Backend Docker Image') {
+            steps {
+                dir('mern-todo-app-master/backend') { // Navigate to correct path
+                    sh "docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
+                }
+                echo "✅ Backend Docker image built successfully!"
+            }
         }
-      }
-    }
 
-    stage('Push Docker Images') {
-      steps {
-        withDockerRegistry([ credentialsId: 'dockerhub-creds', url: '' ]) {
-          sh "docker push ${BACKEND_IMAGE}"
-          sh "docker push ${FRONTEND_IMAGE}"
+        stage('Build Frontend Docker Image') {
+            steps {
+                dir('mern-todo-app-master/frontend') { // Navigate to correct path
+                    sh "docker build -t ${FRONTEND_IMAGE} -f Dockerfile ."
+                }
+                echo "✅ Frontend Docker image built successfully!"
+            }
         }
-      }
-    }
 
-    stage('Deploy to Kubernetes') {
-      steps {
-        sh 'kubectl apply -f k8s-manifests/backend-deployment.yaml'
-        sh 'kubectl apply -f k8s-manifests/frontend-deployment.yaml'
-      }
-    }
-
-    stage('Get Frontend URL') {
-      steps {
-        script {
-          def frontend_url = sh(script: "minikube service frontend-service --url", returnStdout: true).trim()
-          echo "✅ Your MERN app frontend is accessible at: ${frontend_url}"
+        stage('Push Docker Images') {
+            steps {
+                withDockerRegistry(credentialsId: 'DOCKERHUB_CREDENTIALS', url: '') {
+                    sh "docker push ${BACKEND_IMAGE}"
+                    sh "docker push ${FRONTEND_IMAGE}"
+                }
+                echo "✅ Docker images pushed to Docker Hub successfully!"
+            }
         }
-      }
-    }
-  }
 
-  post {
-    failure {
-      echo "❌ Build failed! Please check the console logs."
+        stage('Deploy to Kubernetes') {
+            steps {
+                dir('k8s-manifests') {
+                    sh "kubectl apply -f ."
+                }
+                echo "🚀 Deployment to Kubernetes completed successfully!"
+            }
+        }
+
+        stage('Get Frontend URL') {
+            steps {
+                sh "kubectl get svc frontend-service"
+                echo "🌍 Application successfully deployed! Access frontend via LoadBalancer or NodePort."
+            }
+        }
     }
-    success {
-      echo "✅ CI/CD pipeline completed successfully!"
+
+    post {
+        success {
+            echo "🎉 Deployment completed successfully! Visit your application to test it."
+        }
+        failure {
+            echo "❌ Build failed! Please check the console logs."
+        }
     }
-  }
 }
