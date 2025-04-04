@@ -57,25 +57,24 @@ pipeline {
             }
         }
 
-        stage('Expose Frontend (Port Forward on 9001)') {
-            steps {
-                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                    script {
-                        // Forward to port 9001 instead of 8080
-                        sh "nohup kubectl port-forward svc/frontend-service 9001:80 > portforward.log 2>&1 &"
-                        echo "🌐 Frontend is now accessible at: http://localhost:9001"
-                    }
-                }
+       stage('Expose Frontend (Port Forward on 9001)') {
+    steps {
+        withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+            script {
+                sh "nohup kubectl port-forward svc/frontend-service 9001:80 > portforward.log 2>&1 &"
+                echo "🌐 Frontend is now accessible at: http://localhost:9001"
             }
         }
     }
+}
+    
 
     post {
-        success {
-            echo "🎉 Deployment completed successfully! Visit http://localhost:9090 to access the app."
-        }
-        failure {
-            echo "❌ Build failed! Please check the console logs."
-        }
+    success {
+        echo "🎉 Deployment completed successfully! Visit http://localhost:9001 to access the app."
     }
+    failure {
+        echo "❌ Build failed! Please check the console logs."
+    }
+}
 }
