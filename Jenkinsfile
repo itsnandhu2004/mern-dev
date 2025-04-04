@@ -11,7 +11,7 @@ pipeline {
   stages {
     stage('Checkout Code') {
       steps {
-        git 'https://github.com/your-username/mern-project.git' // Replace with your repo URL
+        git 'https://github.com/itsnandhu2004/mern-dev.git' // Replace with your repo URL
       }
     }
 
