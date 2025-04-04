@@ -43,26 +43,28 @@ pipeline {
             }
         }
 
-      stage('Deploy to Kubernetes') {
-    steps {
-        dir('k8s-manifests') {
-            withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                sh """
-                    kubectl apply -f backend-deployment.yaml
-                    kubectl apply -f frontend-deployment.yaml
-                """
+        stage('Deploy to Kubernetes') {
+            steps {
+                dir('k8s-manifests') {
+                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                        sh """
+                            kubectl apply -f backend-deployment.yaml
+                            kubectl apply -f frontend-deployment.yaml
+                        """
+                    }
+                }
+                echo "🚀 Deployment to Kubernetes completed successfully!"
             }
         }
-        echo "🚀 Deployment to Kubernetes completed successfully!"
-    }
-}
 
         stage('Get Frontend URL') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                    sh "kubectl get svc frontend-service"
+                    script {
+                        def serviceUrl = sh(script: 'minikube service frontend-service --url', returnStdout: true).trim()
+                        echo "🌍 Frontend is accessible at: ${serviceUrl}"
+                    }
                 }
-                echo "🌍 Application successfully deployed! Access frontend via LoadBalancer or NodePort."
             }
         }
     }
