@@ -1,9 +1,17 @@
+
+
+
+
+
+
 pipeline {
     agent any
 
     environment {
         BACKEND_IMAGE = "nandhini1694/mern-backend:latest"
         FRONTEND_IMAGE = "nandhini1694/mern-frontend:latest"
+        MINIKUBE_IP = "192.168.49.2" // Replace with the actual Minikube IP
+        FRONTEND_PORT = "30423" // Replace with the port of your frontend service
     }
 
     stages {
@@ -43,26 +51,42 @@ pipeline {
             }
         }
 
-      stage('Deploy to Kubernetes') {
-    steps {
-        dir('k8s-manifests') {
-            withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                sh """
-                    kubectl apply -f backend-deployment.yaml 
-                    kubectl apply -f frontend-deployment.yaml
-                """
+        stage('Start Minikube & Expose Service') {
+            steps {
+                script {
+                    // Start Minikube (if not already started)
+                    sh "minikube start"
+
+                    // Expose the frontend service via port-forwarding in the background
+                    sh """
+                        nohup kubectl port-forward svc/frontend-service ${FRONTEND_PORT}:80 &
+                        sleep 10
+                    """
+                    
+                    // Optionally, log the service URL for verification
+                    echo "Frontend service is available at http://${MINIKUBE_IP}:${FRONTEND_PORT}"
+                }
             }
         }
-        echo "🚀 Deployment to Kubernetes completed successfully!"
-    }
-}
 
-        
+        stage('Deploy to Kubernetes') {
+            steps {
+                dir('k8s-manifests') {
+                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                        sh """
+                            kubectl apply -f backend-deployment.yaml 
+                            kubectl apply -f frontend-deployment.yaml
+                        """
+                    }
+                }
+                echo "🚀 Deployment to Kubernetes completed successfully!"
+            }
+        }
     }
 
     post {
         success {
-            echo "🎉 Deployment completed successfully! Visit your application to test it."
+            echo "🎉 Deployment completed successfully! Visit the frontend at http://${MINIKUBE_IP}:${FRONTEND_PORT}."
         }
         failure {
             echo "❌ Build failed! Please check the console logs."
