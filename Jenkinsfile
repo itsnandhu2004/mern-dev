@@ -4,7 +4,6 @@ pipeline {
     environment {
         BACKEND_IMAGE = "nandhini1694/mern-backend:latest"
         FRONTEND_IMAGE = "nandhini1694/mern-frontend:latest"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config" // Path to kubeconfig on Jenkins server
     }
 
     stages {
@@ -47,47 +46,31 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 dir('k8s-manifests') {
-                    withEnv(["KUBECONFIG=${KUBECONFIG}"]) {
-                        script {
-                            sh """
-                                echo '🚀 Applying deployment YAMLs...'
-                                kubectl apply -f backend-deployment.yaml
-                                kubectl apply -f frontend-deployment.yaml
-
-                                echo '📦 Getting Pods...'
-                                kubectl get pods
-
-                                echo '🌐 Getting Services...'
-                                kubectl get svc
-
-                                echo '📄 Describing Backend Deployment...'
-                                kubectl describe deployment backend-deployment || true
-
-                                echo '📄 Describing Frontend Deployment...'
-                                kubectl describe deployment frontend-deployment || true
-                            """
-                        }
+                    withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                        sh """
+                            kubectl apply -f backend-deployment.yaml
+                            kubectl apply -f frontend-deployment.yaml
+                        """
                     }
                 }
-                echo "✅ Kubernetes deployment completed and output printed!"
+                echo "🚀 Deployment to Kubernetes completed successfully!"
             }
         }
 
-
-         
+        
     }
 
-    
-
     post {
-        always {
-            echo "🔁 Pipeline execution completed."
-        }
         success {
-            echo "🎉 Success! Your MERN app has been deployed."
+            script {
+                def minikubeIp = sh(script: "minikube ip", returnStdout: true).trim()
+                def nodePort = sh(script: "kubectl get svc frontend-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
+                echo "🎉 Deployment successful!"
+                echo "🌍 Access your app at: http://${minikubeIp}:${nodePort}"
+            }
         }
         failure {
-            echo "❌ Pipeline failed. Please check the logs."
+            echo "❌ Build or deployment failed. Please check logs."
         }
     }
 }
