@@ -44,6 +44,15 @@ pipeline {
             }
         }
 
+        stage('Start Minikube') {
+            steps {
+                script {
+                    echo "🚀 Starting Minikube..."
+                    sh 'minikube start --driver=docker || true'
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 dir('k8s-manifests') {
@@ -69,22 +78,20 @@ pipeline {
                         }
                     }
                 }
-                echo "✅ Kubernetes deployment completed and output printed!"
+                echo "✅ Kubernetes deployment completed!"
             }
         }
 
-
-         stage('Get Frontend Service URL') {
+        stage('Get Frontend Service URL') {
             steps {
                 script {
+                    echo "🌍 Fetching Frontend Service URL..."
                     def frontendUrl = sh(script: "minikube service frontend-service --url", returnStdout: true).trim()
                     echo "🌍 Frontend is accessible at: ${frontendUrl}"
                 }
             }
         }
     }
-
-    
 
     post {
         always {
