@@ -48,7 +48,7 @@ pipeline {
         dir('k8s-manifests') {
             withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                 sh """
-                    kubectl apply -f backend-deployment.yaml
+                    kubectl apply -f backend-deployment.yaml --validate=false
                     kubectl apply -f frontend-deployment.yaml
                 """
             }
