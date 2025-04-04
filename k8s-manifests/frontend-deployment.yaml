@@ -24,10 +24,10 @@ kind: Service
 metadata:
   name: frontend-service
 spec:
+  type: ClusterIP  # <-- changed from LoadBalancer to ClusterIP
   selector:
     app: frontend
   ports:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: LoadBalancer
