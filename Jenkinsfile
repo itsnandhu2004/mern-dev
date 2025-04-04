@@ -57,13 +57,13 @@ pipeline {
             }
         }
 
-        stage('Expose Frontend (Port Forward)') {
+        stage('Expose Frontend (Port Forward on 9090)') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     script {
-                        // Background port-forwarding to keep the pipeline running
-                        sh "nohup kubectl port-forward svc/frontend-service 8080:80 > portforward.log 2>&1 &"
-                        echo "🌐 Frontend is now accessible at: http://localhost:8080"
+                        // Forward to port 9090 instead of 8080
+                        sh "nohup kubectl port-forward svc/frontend-service 9090:80 > portforward.log 2>&1 &"
+                        echo "🌐 Frontend is now accessible at: http://localhost:9090"
                     }
                 }
             }
@@ -72,7 +72,7 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment completed successfully! Visit http://localhost:8080 to access the app."
+            echo "🎉 Deployment completed successfully! Visit http://localhost:9090 to access the app."
         }
         failure {
             echo "❌ Build failed! Please check the console logs."
