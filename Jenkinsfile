@@ -10,8 +10,8 @@ pipeline {
     environment {
         BACKEND_IMAGE = "nandhini1694/mern-backend:latest"
         FRONTEND_IMAGE = "nandhini1694/mern-frontend:latest"
-        MINIKUBE_IP = "192.168.49.2" // Replace with the actual Minikube IP
-        FRONTEND_PORT = "30423" // Replace with the port of your frontend service
+        MINIKUBE_IP = "192.168.49.2" //
+        FRONTEND_PORT = "30423" // 
     }
 
     stages {
